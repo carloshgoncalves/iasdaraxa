@@ -1,0 +1,8 @@
+/env.php
+/storage/logs/*.log
+/storage/cache/*
+/storage/uploads/*
+/storage/backups/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/uploads/.gitkeep

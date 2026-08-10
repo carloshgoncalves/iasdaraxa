@@ -1,0 +1,56 @@
+<?php
+
+declare(strict_types=1);
+
+use IasdCentral\Http\Web\AgendaController;
+use IasdCentral\Http\Web\AuthController;
+use IasdCentral\Http\Web\DashboardController;
+use IasdCentral\Http\Web\ObrasController;
+use IasdCentral\Http\Web\PublicController;
+use IasdCentral\Http\Web\SettingsController;
+
+$router->get('/', [PublicController::class, 'home']);
+$router->get('/login', [AuthController::class, 'showLogin']);
+$router->post('/login', [AuthController::class, 'login']);
+$router->post('/logout', [AuthController::class, 'logout']);
+$router->get('/configuracoes', [SettingsController::class, 'index']);
+$router->post('/configuracoes/aparencia', [SettingsController::class, 'updateAppearance']);
+$router->post('/configuracoes/usuarios', [SettingsController::class, 'storeUser']);
+$router->post('/configuracoes/usuarios/{id}', [SettingsController::class, 'updateUser']);
+$router->post('/configuracoes/clientes', [SettingsController::class, 'storeClient']);
+$router->post('/configuracoes/clientes/{id}', [SettingsController::class, 'updateClient']);
+$router->post('/configuracoes/fornecedores', [SettingsController::class, 'storeSupplier']);
+$router->post('/configuracoes/fornecedores/{id}', [SettingsController::class, 'updateSupplier']);
+$router->post('/configuracoes/sinapi/verificar', [SettingsController::class, 'checkSinapi']);
+
+$router->get('/dashboard', [DashboardController::class, 'index']);
+$router->get('/obras', [ObrasController::class, 'index']);
+$router->post('/obras', [ObrasController::class, 'store']);
+$router->get('/obras/sinapi/catalogo', [ObrasController::class, 'sinapiCatalog']);
+$router->get('/obras/{id}', [ObrasController::class, 'show']);
+$router->get('/obras/{id}/planejamento/exportar', [ObrasController::class, 'exportPlanning']);
+$router->get('/obras/{id}/planejamento/calendario.ics', [ObrasController::class, 'exportCalendar']);
+$router->post('/obras/{id}/memorial', [ObrasController::class, 'saveMemorial']);
+$router->post('/obras/{id}/memorial/gerar', [ObrasController::class, 'generateMemorial']);
+$router->post('/obras/{id}/planejamento/compor', [ObrasController::class, 'composePlanning']);
+$router->post('/obras/{id}/itens', [ObrasController::class, 'storeItem']);
+$router->post('/obras/{id}/itens/{itemId}', [ObrasController::class, 'updateItem']);
+$router->post('/obras/{id}/itens/{itemId}/move', [ObrasController::class, 'moveItem']);
+$router->post('/obras/{id}/itens/{itemId}/delete', [ObrasController::class, 'destroyItem']);
+$router->post('/obras/{id}/composicao', [ObrasController::class, 'storeComposition']);
+$router->post('/obras/{id}/composicao/{resourceId}', [ObrasController::class, 'updateComposition']);
+$router->post('/obras/{id}/composicao/{resourceId}/delete', [ObrasController::class, 'destroyComposition']);
+$router->post('/obras/{id}/modelos', [ObrasController::class, 'storePlanningModel']);
+$router->post('/obras/{id}/planejamento/importar', [ObrasController::class, 'importPlanning']);
+$router->post('/obras/{id}/materiais', [ObrasController::class, 'storeMaterial']);
+$router->post('/obras/{id}/servicos', [ObrasController::class, 'storeService']);
+$router->post('/obras/{id}/equipamentos', [ObrasController::class, 'storeEquipment']);
+$router->post('/obras/{id}/financeiro', [ObrasController::class, 'storeMovement']);
+$router->post('/obras/{id}/diario', [ObrasController::class, 'storeDiary']);
+$router->get('/agenda', [AgendaController::class, 'index']);
+$router->get('/agenda/create', [AgendaController::class, 'create']);
+$router->post('/agenda', [AgendaController::class, 'store']);
+$router->post('/agenda/atividades', [AgendaController::class, 'storeActivity']);
+$router->get('/agenda/{id}/edit', [AgendaController::class, 'edit']);
+$router->post('/agenda/{id}', [AgendaController::class, 'update']);
+$router->post('/agenda/{id}/delete', [AgendaController::class, 'destroy']);

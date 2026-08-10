@@ -1,0 +1,91 @@
+{
+    "schema": "gm-menu/v1",
+    "project": {
+        "slug": "iasdaraxa",
+        "base_path": "/iasdaraxa"
+    },
+    "version": 1,
+    "generated_at": "2026-07-29T00:00:00-03:00",
+    "checksum": "sha256:299548d69ec8abd10413dd3930d9a7f5ac41661b9422663954faf079ae629cbf",
+    "items": [
+        {
+            "id": 1000,
+            "id_menu_pai": null,
+            "nome": "Administrativo",
+            "descricao": "Painel administrativo da IASD Central",
+            "rota": "",
+            "icone": "layout-dashboard",
+            "ordem": 10,
+            "status": "Ativo",
+            "tipo": "Separador",
+            "nivel": "module",
+            "chave_permissao": "menu:1000"
+        },
+        {
+            "id": 1010,
+            "id_menu_pai": 1000,
+            "nome": "Dashboard",
+            "descricao": "Resumo geral",
+            "rota": "/dashboard",
+            "icone": "gauge",
+            "ordem": 10,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1010"
+        },
+        {
+            "id": 1020,
+            "id_menu_pai": 1000,
+            "nome": "Obras",
+            "descricao": "Controle de obras e reformas",
+            "rota": "/obras",
+            "icone": "hard-hat",
+            "ordem": 20,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1020"
+        },
+        {
+            "id": 1030,
+            "id_menu_pai": 1000,
+            "nome": "Escalas",
+            "descricao": "Escalas e equipes",
+            "rota": "/escalas",
+            "icone": "calendar-days",
+            "ordem": 30,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1030"
+        },
+        {
+            "id": 1040,
+            "id_menu_pai": 1000,
+            "nome": "Tarefas",
+            "descricao": "Tarefas em aberto",
+            "rota": "/tarefas",
+            "icone": "list-checks",
+            "ordem": 40,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1040"
+        },
+        {
+            "id": 1050,
+            "id_menu_pai": 1000,
+            "nome": "Agenda geral",
+            "descricao": "Agenda geral da igreja",
+            "rota": "/agenda",
+            "icone": "calendar-clock",
+            "ordem": 50,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1050"
+        }
+    ]
+}
+

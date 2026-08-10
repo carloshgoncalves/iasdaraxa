@@ -1,0 +1,43 @@
+CREATE TABLE IF NOT EXISTS agenda_atividades (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(140) NOT NULL,
+  descricao TEXT NULL,
+  cor VARCHAR(7) NOT NULL DEFAULT '#7a1f38',
+  duracao_padrao_minutos SMALLINT UNSIGNED NULL DEFAULT NULL,
+  exige_escala TINYINT(1) NOT NULL DEFAULT 0,
+  status ENUM('Ativa','Inativa') NOT NULL DEFAULT 'Ativa',
+  created_by BIGINT UNSIGNED NULL DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY agenda_atividades_nome_unique (nome),
+  KEY agenda_atividades_status_index (status),
+  KEY agenda_atividades_created_by_foreign (created_by),
+  CONSTRAINT agenda_atividades_created_by_foreign FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS agenda_eventos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  atividade_id BIGINT UNSIGNED NULL DEFAULT NULL,
+  titulo VARCHAR(180) NOT NULL,
+  descricao TEXT NULL,
+  data_inicio DATE NOT NULL,
+  hora_inicio TIME NULL DEFAULT NULL,
+  data_fim DATE NULL DEFAULT NULL,
+  hora_fim TIME NULL DEFAULT NULL,
+  dia_todo TINYINT(1) NOT NULL DEFAULT 0,
+  local VARCHAR(160) NULL DEFAULT NULL,
+  responsavel VARCHAR(160) NULL DEFAULT NULL,
+  visibilidade ENUM('Publica','Interna') NOT NULL DEFAULT 'Interna',
+  status ENUM('Agendada','Confirmada','Cancelada','Concluida') NOT NULL DEFAULT 'Agendada',
+  observacoes TEXT NULL,
+  created_by BIGINT UNSIGNED NULL DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY agenda_eventos_data_status_index (data_inicio, status),
+  KEY agenda_eventos_atividade_data_index (atividade_id, data_inicio),
+  KEY agenda_eventos_created_by_foreign (created_by),
+  CONSTRAINT agenda_eventos_atividade_id_foreign FOREIGN KEY (atividade_id) REFERENCES agenda_atividades(id) ON DELETE SET NULL,
+  CONSTRAINT agenda_eventos_created_by_foreign FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

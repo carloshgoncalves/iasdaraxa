@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 840" role="img" aria-label="IASD Central">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7a1f38"/>
+      <stop offset="0.56" stop-color="#4b1223"/>
+      <stop offset="1" stop-color="#17241f"/>
+    </linearGradient>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d58b" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#f6d58b" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="840" fill="url(#sky)"/>
+  <path d="M0 676 C190 610 336 714 520 650 C696 589 806 600 952 658 C1112 721 1236 642 1400 676 L1400 840 L0 840 Z" fill="#24352d"/>
+  <path d="M190 596 L540 370 L890 596 Z" fill="#f7f1e8"/>
+  <path d="M280 596 L540 430 L800 596 Z" fill="#e7d9c8"/>
+  <rect x="290" y="596" width="500" height="120" fill="#f7f1e8"/>
+  <rect x="500" y="508" width="80" height="208" fill="#7a1f38"/>
+  <rect x="522" y="456" width="36" height="70" fill="#f7f1e8"/>
+  <rect x="534" y="418" width="12" height="52" fill="#f7f1e8"/>
+  <rect x="360" y="630" width="58" height="86" fill="#7a1f38"/>
+  <rect x="662" y="630" width="58" height="86" fill="#7a1f38"/>
+  <path d="M1040 230 C1096 302 1118 362 1086 430 C1058 490 982 522 916 494 C1016 462 1026 380 990 302 C1022 280 1038 252 1040 230 Z" fill="#f6d58b" opacity="0.9"/>
+  <path d="M1038 230 C1036 312 990 350 922 366 C986 382 1034 432 1038 512 C1080 430 1082 316 1038 230 Z" fill="#ffffff" opacity="0.85"/>
+  <ellipse cx="540" cy="716" rx="420" ry="28" fill="#111815" opacity="0.25"/>
+  <rect x="0" y="0" width="1400" height="840" fill="url(#light)"/>
+</svg>
+

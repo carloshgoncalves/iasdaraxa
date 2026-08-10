@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /appiasdaraxa/
+
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+RewriteRule ^(app|config|database|docs|resources|routes|storage)(/|$) - [F,L]
+RewriteRule ^(bootstrap\.php|env\.php|env\.example\.php|menu\.bin|AGENTS\.md|README\.md)$ - [F,L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [L]
