@@ -1,0 +1,9 @@
+{
+    "php.validate.enable": true,
+    "php.validate.executablePath": "C:\\wamp64\\bin\\php\\php8.4.15\\php.exe",
+    "php.validate.run": "onType",
+    "editor.formatOnSave": true,
+    "files.exclude": {
+        "**/.git": true
+    }
+}
