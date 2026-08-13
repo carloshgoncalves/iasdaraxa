@@ -23,7 +23,7 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 </head>
 <body class="admin-body density-<?= e($templateSettings['layout_density']) ?> theme-<?= e($templateSettings['theme_mode']) ?>" style="--brand: <?= e($templateSettings['brand_color']) ?>; --sidebar-bg: <?= e($templateSettings['sidebar_color']) ?>; --sidebar-width: <?= e($templateSettings['sidebar_width']) ?>px; --app-font: <?= e($templateFont) ?>;">
 <aside class="sidebar" id="sidebar">
-    <a class="brand" href="<?= url('/dashboard') ?>"><span>IC</span><strong>IASD Central</strong></a>
+    <a class="brand" href="<?= url($user ? '/dashboard' : '/') ?>"><span>IC</span><strong>IASD Central</strong></a>
     <nav>
         <?php foreach ($menus as $item): ?>
             <?php if (($item['tipo'] ?? '') === 'Tela'): ?>
@@ -39,8 +39,12 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
         <?php endforeach; ?>
     </nav>
     <div class="sidebar-footer">
-        <a class="settings-link" href="<?= url('/configuracoes') ?>"><span aria-hidden="true">&#9881;</span> Configuracoes</a>
-        <form method="post" action="<?= url('/logout') ?>"><?= Csrf::field() ?><button class="link-button">Sair</button></form>
+        <?php if ($user): ?>
+            <a class="settings-link" href="<?= url('/configuracoes') ?>"><span aria-hidden="true">&#9881;</span> Configuracoes</a>
+            <form method="post" action="<?= url('/logout') ?>"><?= Csrf::field() ?><button class="link-button">Sair</button></form>
+        <?php else: ?>
+            <a class="settings-link" href="<?= url('/') ?>">Voltar ao site</a>
+        <?php endif; ?>
     </div>
 </aside>
 <main class="main">
@@ -50,7 +54,7 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
             <span class="eyebrow">Painel administrativo</span>
             <h1><?= e($title ?? 'Painel') ?></h1>
         </div>
-        <span class="user-chip"><?= e($user['name'] ?? 'Usuario') ?></span>
+        <span class="user-chip"><?= e($user['name'] ?? 'Acesso direto') ?></span>
     </header>
     <?php if ($success): ?><div class="alert success"><?= e($success) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>

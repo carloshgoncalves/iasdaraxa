@@ -65,3 +65,14 @@ Alias /iasdaraxa/ /home/carlos/dev/projetos/iasdaraxa/public/
 
 Esse alias deve expor somente `public/`, mantendo `app/`, `config/`, `database/`,
 `resources/`, `routes/`, `storage/`, `env.php` e `menu.bin` fora da raiz publica.
+
+## Migrador FTP
+
+O migrador publica o projeto em duas raizes remotas fixas:
+
+- `public/` -> `/iasdaraxa.com.br`
+- restante do projeto -> `/appiasdaraxa`
+
+Na hospedagem, `/iasdaraxa.com.br` e a pasta publica. O `public/index.php` localiza o
+`bootstrap.php` privado em `/appiasdaraxa`. As credenciais ficam apenas em
+`migrador/config.php`, que nao e versionado nem enviado ao FTP.

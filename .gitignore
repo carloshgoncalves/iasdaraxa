@@ -1,4 +1,5 @@
 /env.php
+/migrador/config.php
 /storage/logs/*.log
 /storage/cache/*
 /storage/uploads/*

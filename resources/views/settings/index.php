@@ -1,6 +1,7 @@
 <?php use IasdCentral\Core\Csrf; ?>
 <section class="panel no-margin settings-head">
     <div><span class="eyebrow">Administracao</span><h2>Template, acessos e cadastros</h2><p class="muted">Preferencias gerais, usuarios e bases compartilhadas.</p></div>
+    <a class="button" href="<?= url('/migrador') ?>">Publicar FTP</a>
 </section>
 
 <nav class="module-tabs" data-tabs role="tablist" aria-label="Topicos de configuracao">

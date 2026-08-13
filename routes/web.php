@@ -5,6 +5,7 @@ declare(strict_types=1);
 use IasdCentral\Http\Web\AgendaController;
 use IasdCentral\Http\Web\AuthController;
 use IasdCentral\Http\Web\DashboardController;
+use IasdCentral\Http\Web\MigratorController;
 use IasdCentral\Http\Web\ObrasController;
 use IasdCentral\Http\Web\PublicController;
 use IasdCentral\Http\Web\SettingsController;
@@ -22,6 +23,8 @@ $router->post('/configuracoes/clientes/{id}', [SettingsController::class, 'updat
 $router->post('/configuracoes/fornecedores', [SettingsController::class, 'storeSupplier']);
 $router->post('/configuracoes/fornecedores/{id}', [SettingsController::class, 'updateSupplier']);
 $router->post('/configuracoes/sinapi/verificar', [SettingsController::class, 'checkSinapi']);
+$router->get('/migrador', [MigratorController::class, 'index']);
+$router->post('/migrador/atualizar-ftp', [MigratorController::class, 'updateFtp']);
 
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->get('/obras', [ObrasController::class, 'index']);
