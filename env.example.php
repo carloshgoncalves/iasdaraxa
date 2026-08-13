@@ -9,8 +9,8 @@ return [
     'database' => [
         'host' => '127.0.0.1',
         'port' => 3306,
-        'name' => 'iasdaraxa',
-        'user' => 'usuario_mysql',
+        'name' => 'tunacc14_iasdaraxa',
+        'user' => 'tunacc14_iasdaraxa',
         'password' => 'senha_mysql',
         'charset' => 'utf8mb4',
     ],
