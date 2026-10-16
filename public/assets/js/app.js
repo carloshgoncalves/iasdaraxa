@@ -31,6 +31,97 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (document.querySelector('[data-live-voting-display]')) {
+        window.setTimeout(() => window.location.reload(), 30000);
+    }
+
+    document.querySelectorAll('[data-indication-monitor]').forEach((monitor) => {
+        const missingIndications = monitor.querySelector('[data-missing-indications]');
+        const missingIndicationsEmpty = monitor.querySelector('[data-missing-indications-empty]');
+        const missingVotesBlock = monitor.querySelector('[data-missing-votes-block]');
+        const missingVotes = monitor.querySelector('[data-missing-votes]');
+        const missingVotesEmpty = monitor.querySelector('[data-missing-votes-empty]');
+        const initialNamesSignature = monitor.dataset.namesSignature || '';
+        const roleLabels = {presidente: 'Presidente', secretario: 'Secretário', membro: 'Membro'};
+
+        const renderMembers = (container, empty, members) => {
+            container?.replaceChildren();
+            (members || []).forEach((member) => {
+                const item = document.createElement('span');
+                const name = document.createElement('strong');
+                const role = document.createElement('small');
+                name.textContent = member.nome;
+                role.textContent = roleLabels[member.papel] || member.papel;
+                item.append(name, role);
+                container?.appendChild(item);
+            });
+            if (empty) empty.hidden = (members || []).length > 0;
+        };
+
+        const render = (payload) => {
+            const namesSignature = (payload.names || []).map((person) => String(person.id)).join(',');
+            if (namesSignature !== initialNamesSignature) {
+                window.location.reload();
+                return;
+            }
+            renderMembers(missingIndications, missingIndicationsEmpty, payload.missing_indications);
+            renderMembers(missingVotes, missingVotesEmpty, payload.missing_votes);
+            if (missingVotesBlock) missingVotesBlock.hidden = !payload.vote_open;
+        };
+
+        const refresh = async () => {
+            try {
+                const response = await fetch(monitor.dataset.endpoint, {headers: {Accept: 'application/json'}});
+                const payload = await response.json();
+                if (response.ok && payload.ok) render(payload);
+            } catch (error) {
+                // Mantém os últimos dados exibidos até a próxima atualização.
+            }
+        };
+
+        window.setInterval(refresh, 30000);
+    });
+
+    document.querySelectorAll('[data-member-ballot]').forEach((ballot) => {
+        const limit = Number.parseInt(ballot.dataset.limit || '1', 10);
+        const checkboxes = Array.from(ballot.querySelectorAll('input[type="checkbox"]'));
+        const counter = ballot.querySelector('[data-vote-counter]');
+        const submit = ballot.querySelector('.member-confirm-vote-button');
+        const dialog = ballot.parentElement?.querySelector('[data-incomplete-vote-dialog]');
+        const missingVotes = dialog?.querySelector('[data-missing-votes]');
+        const confirmIncomplete = dialog?.querySelector('[data-confirm-incomplete-vote]');
+        const returnToVote = dialog?.querySelector('[data-return-to-vote]');
+        let incompleteVoteConfirmed = false;
+        const update = () => {
+            const selected = checkboxes.filter((checkbox) => checkbox.checked);
+            checkboxes.forEach((checkbox) => {
+                checkbox.closest('.member-vote-option')?.classList.toggle('selected', checkbox.checked);
+                if (submit) checkbox.disabled = !checkbox.checked && selected.length >= limit;
+            });
+            if (counter) counter.textContent = String(selected.length);
+            if (submit) submit.disabled = selected.length === 0;
+        };
+        checkboxes.forEach((checkbox) => checkbox.addEventListener('change', update));
+        ballot.addEventListener('submit', (event) => {
+            const selectedTotal = checkboxes.filter((checkbox) => checkbox.checked).length;
+            if (!incompleteVoteConfirmed && selectedTotal > 0 && selectedTotal < limit && dialog instanceof HTMLDialogElement) {
+                event.preventDefault();
+                if (missingVotes) missingVotes.textContent = String(limit - selectedTotal);
+                dialog.showModal();
+            }
+        });
+        confirmIncomplete?.addEventListener('click', () => {
+            incompleteVoteConfirmed = true;
+            dialog.close();
+            ballot.requestSubmit();
+        });
+        returnToVote?.addEventListener('click', () => dialog.close());
+        dialog?.addEventListener('click', (event) => {
+            if (event.target === dialog) dialog.close();
+        });
+        update();
+    });
+
     document.querySelectorAll('.color-control input[type="color"]').forEach((input) => {
         const output = input.closest('.color-control')?.querySelector('code');
         input.addEventListener('input', () => {
@@ -116,8 +207,32 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const dialog = document.getElementById(button.dataset.dialogOpen);
             if (dialog instanceof HTMLDialogElement) {
+                if (dialog.matches('[data-record-dialog]')) {
+                    const form = dialog.querySelector('[data-record-form]');
+                    const title = dialog.querySelector('[data-record-dialog-title]');
+                    const submit = dialog.querySelector('[data-record-submit]');
+                    const fields = {
+                        nome: 'recordNome',
+                        data_inicio: 'recordDataInicio',
+                        data_fim: 'recordDataFim',
+                        situacao: 'recordSituacao',
+                        status: 'recordStatus',
+                    };
+
+                    form?.reset();
+                    if (form && button.dataset.formAction) form.action = button.dataset.formAction;
+                    if (title) title.textContent = button.dataset.dialogTitle || 'Cadastro';
+                    if (submit) submit.textContent = button.dataset.submitLabel || 'Salvar';
+                    Object.entries(fields).forEach(([name, dataKey]) => {
+                        const field = form?.elements.namedItem(name);
+                        if (field && button.dataset[dataKey] !== undefined) {
+                            field.value = button.dataset[dataKey];
+                        }
+                    });
+                }
                 button.closest('details')?.removeAttribute('open');
                 dialog.showModal();
+                window.requestAnimationFrame(() => dialog.querySelector('[autofocus]')?.focus());
             }
         });
     });
@@ -538,6 +653,22 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('popstate', activateFromHash);
         activateFromHash();
     });
+
+    document.querySelectorAll('[data-vote-role]').forEach((select) => {
+        const updateRoleColor = () => {
+            select.classList.remove('role-votado', 'role-associado', 'role-candidato', 'role-secretario');
+            select.classList.add(`role-${select.value}`);
+        };
+
+        select.addEventListener('change', updateRoleColor);
+        updateRoleColor();
+    });
+
+    document.querySelectorAll('[data-member-code]').forEach((input) => {
+        input.addEventListener('input', () => {
+            input.value = input.value.replace(/\D/g, '').slice(0, 6);
+        });
+    });
 });
 
 document.addEventListener('click', (event) => {
@@ -554,17 +685,4 @@ document.addEventListener('click', (event) => {
 document.querySelector('[data-theme-selector]')?.addEventListener('change', (event) => {
     document.body.classList.remove('theme-light', 'theme-dark');
     document.body.classList.add(`theme-${event.target.value}`);
-});
-
-document.querySelectorAll('[data-cpf-mask]').forEach((input) => {
-    const format = () => {
-        const digits = input.value.replace(/\D/g, '').slice(0, 11);
-        input.value = digits
-            .replace(/^(\d{3})(\d)/, '$1.$2')
-            .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-            .replace(/\.(\d{3})(\d)/, '.$1-$2');
-    };
-
-    input.addEventListener('input', format);
-    format();
 });

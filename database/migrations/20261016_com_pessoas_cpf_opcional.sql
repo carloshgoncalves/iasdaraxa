@@ -1,0 +1,2 @@
+ALTER TABLE com_pessoas
+  MODIFY cpf CHAR(11) NULL DEFAULT NULL;

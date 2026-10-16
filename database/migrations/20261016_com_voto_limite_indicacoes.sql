@@ -1,0 +1,2 @@
+ALTER TABLE com_voto
+  ADD COLUMN limite_indicacoes TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER status;

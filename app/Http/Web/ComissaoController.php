@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use IasdCentral\Core\Auth;
 use IasdCentral\Core\Csrf;
 use IasdCentral\Core\Request;
+use IasdCentral\Core\Response;
 use IasdCentral\Core\View;
 use IasdCentral\Repositories\ComissaoRepository;
 use IasdCentral\Repositories\MenuRepository;
@@ -16,6 +17,8 @@ final class ComissaoController
 {
     private const SITUATIONS = ['aguardando', 'iniciada', 'finalizada'];
     private const OFFICE_STATUSES = ['ativo', 'inativo'];
+    private const VOTE_ROLES = ['votado', 'associado', 'candidato', 'secretario'];
+    private const COMMISSION_MEMBER_ROLES = ['presidente', 'secretario', 'membro'];
 
     public function index(Request $request): void
     {
@@ -139,6 +142,450 @@ final class ComissaoController
         $this->success('Comissão removida.', '/comissao/comissoes');
     }
 
+    public function startCommission(Request $request, string $id): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] === 'finalizada') {
+            $this->fail('Uma comissão finalizada não pode ser iniciada novamente.', '/comissao/comissoes');
+        }
+        if (!$repository->startCommission($commissionId)) {
+            $this->fail('Não foi possível iniciar a comissão.', '/comissao/comissoes');
+        }
+
+        $this->success('Comissão iniciada e cargos vinculados.', '/comissao/comissoes/' . $commissionId . '/cargos');
+    }
+
+    public function commissionOffices(Request $request, string $id): void
+    {
+        $user = Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] === 'aguardando') {
+            $this->fail('Use o botão Iniciar para preparar os cargos desta comissão.', '/comissao/comissoes');
+        }
+
+        $selectedVote = null;
+        $voteFlow = null;
+        $voteParticipants = [];
+        $availablePeople = [];
+        $indicationOverview = [
+            'names' => [],
+            'missing_indications' => [],
+            'missing_votes' => [],
+            'vote_open' => false,
+        ];
+        $selectedVoteId = (int) $request->input('votacao', 0);
+        if ($selectedVoteId > 0) {
+            $selectedVote = $repository->findCommissionOffice($commissionId, $selectedVoteId);
+            if ($selectedVote === null) {
+                $this->notFound('Votação não encontrada nesta comissão.', '/comissao/comissoes/' . $commissionId . '/cargos');
+            }
+            $voteFlow = $repository->findVoteFlow($selectedVoteId);
+            $voteParticipants = $repository->voteParticipants($selectedVoteId);
+            $indicationOverview = $repository->indicationOverview($selectedVoteId);
+            if ($commission['situacao'] === 'iniciada' && $selectedVote['votacao_status'] === 'aberta') {
+                $availablePeople = $repository->availablePeopleForVote($selectedVoteId);
+            }
+        }
+
+        View::render('modules/comissao/cargos-comissao', [
+            'title' => 'Cargos da comissão',
+            'user' => $user,
+            'menus' => (new MenuRepository())->activeTreeForUser((int) $user['id']),
+            'commission' => $commission,
+            'offices' => $repository->commissionOffices($commissionId),
+            'availableOffices' => $repository->availableOffices($commissionId),
+            'commissionMembers' => $repository->commissionMembers($commissionId),
+            'availableCommissionPeople' => $repository->availablePeopleForCommission($commissionId),
+            'editable' => $commission['situacao'] === 'iniciada',
+            'membersDialogOpen' => (string) $request->input('membros', '') === '1',
+            'selectedVote' => $selectedVote,
+            'voteFlow' => $voteFlow,
+            'voteParticipants' => $voteParticipants,
+            'availablePeople' => $availablePeople,
+            'indicationOverview' => $indicationOverview,
+        ]);
+    }
+
+    public function votingDisplay(Request $request, string $id): void
+    {
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+
+        $presentation = $repository->currentCommissionPresentation($commissionId);
+        $items = [];
+        if ($presentation !== null) {
+            $items = match ($presentation['display_mode']) {
+                'indications' => $repository->distinctIndications((int) $presentation['voto_id']),
+                'voting' => $repository->memberVotingCandidates((int) $presentation['voto_id']),
+                'result' => $repository->voteParticipants((int) $presentation['comissao_cargo_id']),
+            };
+        }
+
+        View::render('modules/comissao/voting-display', [
+            'title' => 'Tela de votação',
+            'commission' => $commission,
+            'presentation' => $presentation,
+            'items' => $items,
+            'displayMode' => true,
+        ], 'layouts/member');
+    }
+
+    public function indicationStatus(Request $request, string $id, string $voteId): void
+    {
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        $repository = new ComissaoRepository();
+        if ($repository->findCommissionOffice($commissionId, $commissionOfficeId) === null) {
+            Response::json(['ok' => false, 'message' => 'Votação não encontrada.'], 404);
+            return;
+        }
+
+        Response::json(['ok' => true] + $repository->indicationOverview($commissionOfficeId));
+    }
+
+    public function addCommissionOffice(Request $request, string $id): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar seus cargos.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        $newOffice = trim((string) $request->input('novo_cargo'));
+        $officeId = (int) $request->input('cargo_id', 0);
+        if ($newOffice !== '') {
+            if (mb_strlen($newOffice) > 180) {
+                $this->fail('Informe o nome do cargo com até 180 caracteres.', '/comissao/comissoes/' . $commissionId . '/cargos');
+            }
+            $repository->createAndAttachOffice($commissionId, $newOffice);
+        } else {
+            $office = $repository->findOffice($officeId);
+            if ($office === null || $office['status'] !== 'ativo') {
+                $this->fail('Selecione um cargo existente ou informe um novo cargo.', '/comissao/comissoes/' . $commissionId . '/cargos');
+            }
+            $repository->attachOffice($commissionId, $officeId);
+        }
+
+        $this->success('Cargo adicionado à comissão.', '/comissao/comissoes/' . $commissionId . '/cargos');
+    }
+
+    public function removeCommissionOffice(Request $request, string $id, string $cargoId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar seus cargos.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        $commissionOffice = $repository->findCommissionOfficeByCargo($commissionId, (int) $cargoId);
+        if ($commissionOffice !== null && $commissionOffice['votacao_status'] === 'encerrada') {
+            $this->fail('Reabra a votação antes de retirar este cargo.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        $repository->detachOffice($commissionId, (int) $cargoId);
+        $this->success('Cargo retirado desta comissão.', '/comissao/comissoes/' . $commissionId . '/cargos');
+    }
+
+    public function moveCommissionOffice(Request $request, string $id, string $cargoId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $direction = (string) $request->input('direcao');
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar a ordem dos cargos.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+        if (!in_array($direction, ['up', 'down'], true)) {
+            $this->fail('Direção inválida para mover o cargo.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        $repository->moveCommissionOffice($commissionId, (int) $cargoId, $direction);
+        redirect('/comissao/comissoes/' . $commissionId . '/cargos');
+    }
+
+    public function addCommissionMember(Request $request, string $id): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar seus membros.', $this->membersPath($commissionId));
+        }
+
+        $role = (string) $request->input('papel', 'membro');
+        if (!in_array($role, self::COMMISSION_MEMBER_ROLES, true)) {
+            $this->fail('Selecione uma classificação válida.', $this->membersPath($commissionId));
+        }
+
+        $newPerson = trim((string) $request->input('nova_pessoa'));
+        $personId = (int) $request->input('pessoa_id', 0);
+        if ($newPerson !== '') {
+            if (mb_strlen($newPerson) > 160) {
+                $this->fail('Informe o nome da pessoa com até 160 caracteres.', $this->membersPath($commissionId));
+            }
+            $repository->createAndAttachCommissionMember($commissionId, $newPerson, $role);
+        } else {
+            if ($personId < 1 || $repository->findPerson($personId) === null) {
+                $this->fail('Selecione uma pessoa existente ou informe um novo nome.', $this->membersPath($commissionId));
+            }
+            $repository->attachCommissionMember($commissionId, $personId, $role);
+        }
+
+        $this->success('Membro adicionado à comissão.', $this->membersPath($commissionId));
+    }
+
+    public function updateCommissionMember(Request $request, string $id, string $memberId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar seus membros.', $this->membersPath($commissionId));
+        }
+
+        $role = (string) $request->input('papel');
+        if (!in_array($role, self::COMMISSION_MEMBER_ROLES, true)) {
+            $this->fail('Selecione uma classificação válida.', $this->membersPath($commissionId));
+        }
+
+        $repository->updateCommissionMember($commissionId, (int) $memberId, $role);
+        $this->success('Classificação do membro atualizada.', $this->membersPath($commissionId));
+    }
+
+    public function removeCommissionMember(Request $request, string $id, string $memberId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar seus membros.', $this->membersPath($commissionId));
+        }
+
+        $repository->removeCommissionMember($commissionId, (int) $memberId);
+        $this->success('Membro retirado da comissão.', $this->membersPath($commissionId));
+    }
+
+    public function addVotePerson(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Reabra a votação antes de adicionar pessoas.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $newPerson = trim((string) $request->input('nova_pessoa'));
+        $personId = (int) $request->input('pessoa_id', 0);
+        if ($newPerson !== '') {
+            if (mb_strlen($newPerson) > 160) {
+                $this->fail('Informe o nome da pessoa com até 160 caracteres.', $this->votePath($commissionId, $commissionOfficeId));
+            }
+            $repository->createAndAttachPersonToVote($commissionOfficeId, $newPerson);
+        } else {
+            if ($personId < 1 || $repository->findPerson($personId) === null) {
+                $this->fail('Selecione uma pessoa existente ou informe um novo nome.', $this->votePath($commissionId, $commissionOfficeId));
+            }
+            $repository->attachPersonToVote($commissionOfficeId, $personId);
+        }
+
+        $this->success('Pessoa adicionada à votação.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function openIndications(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Reabra a votação antes de abrir as indicações.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $rawLimit = trim((string) $request->input('limite_indicacoes'));
+        if (!preg_match('/^[1-9]$/', $rawLimit)) {
+            $this->fail('Informe um limite de indicações entre 1 e 9.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $rawVoteLimit = trim((string) $request->input('limite_votos'));
+        if (!preg_match('/^[1-9][0-9]?$/', $rawVoteLimit)) {
+            $this->fail('Informe uma quantidade de votos entre 1 e 99.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->openIndications($commissionOfficeId, (int) $rawLimit, (int) $rawVoteLimit);
+        $this->success(
+            'Indicações abertas com limite de ' . $rawLimit . ' indicação(ões) e '
+                . $rawVoteLimit . ' voto(s) por membro.',
+            $this->votePath($commissionId, $commissionOfficeId)
+        );
+    }
+
+    public function closeIndications(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Esta votação já está encerrada.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $flow = $repository->findVoteFlow($commissionOfficeId);
+        if ($flow === null || $flow['status'] !== 'indicacao') {
+            $this->fail('As indicações não estão abertas.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->closeIndications($commissionOfficeId);
+        $this->success('Indicações encerradas.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function openVoting(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Reabra esta votação antes de iniciar uma nova etapa.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $flow = $repository->findVoteFlow($commissionOfficeId);
+        if ($flow === null || $flow['status'] !== 'encerrado') {
+            $this->fail('Encerre as indicações antes de abrir a votação.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->openVoting($commissionOfficeId);
+        $this->success('Votação aberta.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function cancelVoting(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Reabra esta votação antes de cancelá-la.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $flow = $repository->findVoteFlow($commissionOfficeId);
+        if ($flow === null || $flow['status'] !== 'votando') {
+            $this->fail('Não há uma votação aberta para cancelar.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->cancelVoting($commissionOfficeId);
+        $this->success('Votação cancelada. O cargo voltou para Aguardando.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function saveVote(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Esta votação já está encerrada.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+        $flow = $repository->findVoteFlow($commissionOfficeId);
+        if ($flow === null || $flow['status'] !== 'votando') {
+            $this->fail('Abra a votação antes de registrar os votos.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->saveVoteParticipants($commissionOfficeId, $this->voteEntries($request, $commissionId, $commissionOfficeId));
+        $this->success('Votação salva.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function closeVote(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'aberta') {
+            $this->fail('Esta votação já está encerrada.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+        $flow = $repository->findVoteFlow($commissionOfficeId);
+        if ($flow === null || $flow['status'] !== 'votando') {
+            $this->fail('Abra a votação antes de encerrá-la.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->saveVoteParticipants($commissionOfficeId, $this->voteEntries($request, $commissionId, $commissionOfficeId));
+        $repository->closeVote($commissionOfficeId);
+        $this->success('Votação encerrada.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
+    public function reopenVote(Request $request, string $id, string $voteId): void
+    {
+        Csrf::verify();
+        Auth::requireLogin();
+        $commissionId = (int) $id;
+        $commissionOfficeId = (int) $voteId;
+        [$repository, , $vote] = $this->editableVote($commissionId, $commissionOfficeId);
+        if ($vote['votacao_status'] !== 'encerrada') {
+            $this->fail('Esta votação já está aberta.', $this->votePath($commissionId, $commissionOfficeId));
+        }
+
+        $repository->reopenVote($commissionOfficeId);
+        $this->success('Votação reaberta com os dados anteriores.', $this->votePath($commissionId, $commissionOfficeId));
+    }
+
     public function offices(Request $request): void
     {
         $this->render('cargos');
@@ -234,10 +681,10 @@ final class ComissaoController
         if ($data['nome'] === '' || mb_strlen($data['nome']) > 160) {
             return 'Informe um nome com até 160 caracteres.';
         }
-        if (!$this->validCpf($data['cpf'])) {
+        if ($data['cpf'] !== '' && !$this->validCpf($data['cpf'])) {
             return 'Informe um CPF válido.';
         }
-        if ((new ComissaoRepository())->cpfExists($data['cpf'], $ignoreId)) {
+        if ($data['cpf'] !== '' && (new ComissaoRepository())->cpfExists($data['cpf'], $ignoreId)) {
             return 'Este CPF já está cadastrado.';
         }
 
@@ -320,6 +767,61 @@ final class ComissaoController
     {
         $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         return $parsed !== false && $parsed->format('Y-m-d') === $date;
+    }
+
+    private function editableVote(int $commissionId, int $commissionOfficeId): array
+    {
+        $repository = new ComissaoRepository();
+        $commission = $repository->findCommission($commissionId);
+        if ($commission === null) {
+            $this->notFound('Comissão não encontrada.', '/comissao/comissoes');
+        }
+        if ($commission['situacao'] !== 'iniciada') {
+            $this->fail('Somente uma comissão iniciada pode alterar votações.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        $vote = $repository->findCommissionOffice($commissionId, $commissionOfficeId);
+        if ($vote === null) {
+            $this->notFound('Votação não encontrada nesta comissão.', '/comissao/comissoes/' . $commissionId . '/cargos');
+        }
+
+        return [$repository, $commission, $vote];
+    }
+
+    private function voteEntries(Request $request, int $commissionId, int $commissionOfficeId): array
+    {
+        $path = $this->votePath($commissionId, $commissionOfficeId);
+        $votes = $request->input('votos', []);
+        $roles = $request->input('papeis', []);
+        if (!is_array($votes) || !is_array($roles)) {
+            $this->fail('Os dados da votação são inválidos.', $path);
+        }
+
+        $entries = [];
+        foreach ($votes as $participantId => $voteCount) {
+            $id = (int) $participantId;
+            $rawVoteCount = (string) $voteCount;
+            $role = (string) ($roles[$participantId] ?? '');
+            if ($id < 1 || !preg_match('/^\d+$/', $rawVoteCount) || (int) $rawVoteCount > 999999) {
+                $this->fail('Informe uma quantidade de votos entre 0 e 999999.', $path);
+            }
+            if (!in_array($role, self::VOTE_ROLES, true)) {
+                $this->fail('Selecione uma classificação válida para cada pessoa.', $path);
+            }
+            $entries[] = ['id' => $id, 'votos' => (int) $rawVoteCount, 'papel' => $role];
+        }
+
+        return $entries;
+    }
+
+    private function votePath(int $commissionId, int $commissionOfficeId): string
+    {
+        return '/comissao/comissoes/' . $commissionId . '/cargos?votacao=' . $commissionOfficeId;
+    }
+
+    private function membersPath(int $commissionId): string
+    {
+        return '/comissao/comissoes/' . $commissionId . '/cargos?membros=1';
     }
 
     private function fail(string $message, string $path): never

@@ -544,7 +544,7 @@ CREATE TABLE IF NOT EXISTS obra_diarios (
 CREATE TABLE IF NOT EXISTS com_pessoas (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome VARCHAR(160) NOT NULL,
-  cpf CHAR(11) NOT NULL,
+  cpf CHAR(11) NULL DEFAULT NULL,
   created_at TIMESTAMP NULL DEFAULT NULL,
   updated_at TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (id),
@@ -573,4 +573,120 @@ CREATE TABLE IF NOT EXISTS com_cargos (
   PRIMARY KEY (id),
   UNIQUE KEY com_cargos_nome_unique (nome),
   KEY com_cargos_status_nome_index (status, nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_comissao_membros (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  comissao_id BIGINT UNSIGNED NOT NULL,
+  pessoa_id BIGINT UNSIGNED NOT NULL,
+  papel ENUM('presidente','secretario','membro') NOT NULL DEFAULT 'membro',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_comissao_membros_unique (comissao_id, pessoa_id),
+  KEY com_comissao_membros_pessoa_index (pessoa_id),
+  KEY com_comissao_membros_papel_index (comissao_id, papel),
+  CONSTRAINT com_comissao_membros_comissao_fk FOREIGN KEY (comissao_id) REFERENCES com_comissoes(id) ON DELETE CASCADE,
+  CONSTRAINT com_comissao_membros_pessoa_fk FOREIGN KEY (pessoa_id) REFERENCES com_pessoas(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_comissao_cargos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  comissao_id BIGINT UNSIGNED NOT NULL,
+  cargo_id BIGINT UNSIGNED NOT NULL,
+  ordem INT UNSIGNED NOT NULL DEFAULT 0,
+  votacao_status ENUM('aberta','encerrada') NOT NULL DEFAULT 'aberta',
+  votacao_encerrada_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_comissao_cargos_unique (comissao_id, cargo_id),
+  KEY com_comissao_cargos_cargo_index (cargo_id),
+  KEY com_comissao_cargos_ordem_index (comissao_id, ordem),
+  CONSTRAINT com_comissao_cargos_comissao_fk FOREIGN KEY (comissao_id) REFERENCES com_comissoes(id) ON DELETE CASCADE,
+  CONSTRAINT com_comissao_cargos_cargo_fk FOREIGN KEY (cargo_id) REFERENCES com_cargos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_votacao_pessoas (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  comissao_cargo_id BIGINT UNSIGNED NOT NULL,
+  pessoa_id BIGINT UNSIGNED NOT NULL,
+  votos INT UNSIGNED NOT NULL DEFAULT 0,
+  papel ENUM('votado','associado','candidato','secretario') NOT NULL DEFAULT 'candidato',
+  origem ENUM('admin','indicacao') NOT NULL DEFAULT 'admin',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_votacao_pessoas_unique (comissao_cargo_id, pessoa_id),
+  KEY com_votacao_pessoas_pessoa_index (pessoa_id),
+  KEY com_votacao_pessoas_papel_index (comissao_cargo_id, papel),
+  CONSTRAINT com_votacao_pessoas_cargo_fk FOREIGN KEY (comissao_cargo_id) REFERENCES com_comissao_cargos(id) ON DELETE CASCADE,
+  CONSTRAINT com_votacao_pessoas_pessoa_fk FOREIGN KEY (pessoa_id) REFERENCES com_pessoas(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_voto (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  comissao_cargo_id BIGINT UNSIGNED NOT NULL,
+  status ENUM('aguardando','indicacao','votando','encerrado') NOT NULL DEFAULT 'aguardando',
+  limite_indicacoes TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  limite_votos TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  indicacoes_abertas_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_voto_comissao_cargo_unique (comissao_cargo_id),
+  KEY com_voto_status_index (status),
+  CONSTRAINT com_voto_comissao_cargo_fk FOREIGN KEY (comissao_cargo_id) REFERENCES com_comissao_cargos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_indicacoes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  voto_id BIGINT UNSIGNED NOT NULL,
+  comissao_membro_id BIGINT UNSIGNED NOT NULL,
+  pessoa_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_indicacoes_membro_pessoa_unique (voto_id, comissao_membro_id, pessoa_id),
+  KEY com_indicacoes_pessoa_index (pessoa_id),
+  KEY com_indicacoes_membro_index (comissao_membro_id),
+  CONSTRAINT com_indicacoes_voto_fk FOREIGN KEY (voto_id) REFERENCES com_voto(id) ON DELETE CASCADE,
+  CONSTRAINT com_indicacoes_membro_fk FOREIGN KEY (comissao_membro_id) REFERENCES com_comissao_membros(id) ON DELETE CASCADE,
+  CONSTRAINT com_indicacoes_pessoa_fk FOREIGN KEY (pessoa_id) REFERENCES com_pessoas(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_indicacao_conclusoes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  voto_id BIGINT UNSIGNED NOT NULL,
+  comissao_membro_id BIGINT UNSIGNED NOT NULL,
+  encerrada_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_indicacao_conclusoes_membro_unique (voto_id, comissao_membro_id),
+  KEY com_indicacao_conclusoes_membro_index (comissao_membro_id),
+  CONSTRAINT com_indicacao_conclusoes_voto_fk FOREIGN KEY (voto_id) REFERENCES com_voto(id) ON DELETE CASCADE,
+  CONSTRAINT com_indicacao_conclusoes_membro_fk FOREIGN KEY (comissao_membro_id) REFERENCES com_comissao_membros(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_votacao_membros (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  voto_id BIGINT UNSIGNED NOT NULL,
+  comissao_membro_id BIGINT UNSIGNED NOT NULL,
+  confirmado_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_votacao_membros_voto_membro_unique (voto_id, comissao_membro_id),
+  KEY com_votacao_membros_membro_index (comissao_membro_id),
+  CONSTRAINT com_votacao_membros_voto_fk FOREIGN KEY (voto_id) REFERENCES com_voto(id) ON DELETE CASCADE,
+  CONSTRAINT com_votacao_membros_membro_fk FOREIGN KEY (comissao_membro_id) REFERENCES com_comissao_membros(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_votacao_escolhas (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  votacao_membro_id BIGINT UNSIGNED NOT NULL,
+  pessoa_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_votacao_escolhas_pessoa_unique (votacao_membro_id, pessoa_id),
+  KEY com_votacao_escolhas_pessoa_index (pessoa_id),
+  CONSTRAINT com_votacao_escolhas_membro_fk FOREIGN KEY (votacao_membro_id) REFERENCES com_votacao_membros(id) ON DELETE CASCADE,
+  CONSTRAINT com_votacao_escolhas_pessoa_fk FOREIGN KEY (pessoa_id) REFERENCES com_pessoas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -4,13 +4,29 @@ use IasdCentral\Core\Csrf;
 
 $editing = $editing ?? null;
 $isEdit = $editing !== null;
-$formatCpf = static function (string $cpf): string {
-    $digits = preg_replace('/\D+/', '', $cpf) ?? '';
-    return strlen($digits) === 11
-        ? substr($digits, 0, 3) . '.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-' . substr($digits, 9, 2)
-        : $cpf;
-};
 $situationLabels = ['aguardando' => 'Aguardando', 'iniciada' => 'Iniciada', 'finalizada' => 'Finalizada'];
+$sectionConfig = match ($section) {
+    'pessoas' => [
+        'singular' => 'pessoa',
+        'new_label' => 'Nova pessoa',
+        'create_action' => url('/comissao/pessoas'),
+    ],
+    'cargos' => [
+        'singular' => 'cargo',
+        'new_label' => 'Novo cargo',
+        'create_action' => url('/comissao/cargos'),
+    ],
+    default => [
+        'singular' => 'comissão',
+        'new_label' => 'Nova comissão',
+        'create_action' => url('/comissao/comissoes'),
+    ],
+};
+$formAction = $isEdit ? match ($section) {
+    'pessoas' => url('/comissao/pessoas/' . $editing['id']),
+    'cargos' => url('/comissao/cargos/' . $editing['id']),
+    default => url('/comissao/comissoes/' . $editing['id']),
+} : $sectionConfig['create_action'];
 ?>
 <section class="panel no-margin commission-head">
     <div>
@@ -32,19 +48,39 @@ $situationLabels = ['aguardando' => 'Aguardando', 'iniciada' => 'Iniciada', 'fin
                 <h2><?= e($title) ?></h2>
                 <p class="muted"><?= e(count($records)) ?> registro(s)</p>
             </div>
+            <button
+                class="button primary"
+                type="button"
+                data-dialog-open="commission-record-dialog"
+                data-form-action="<?= e($sectionConfig['create_action']) ?>"
+                data-dialog-title="<?= e($sectionConfig['new_label']) ?>"
+                data-submit-label="Salvar"
+                data-record-nome=""
+                data-record-data-inicio=""
+                data-record-data-fim=""
+                data-record-situacao="aguardando"
+                data-record-status="ativo"
+            ><?= e($sectionConfig['new_label']) ?></button>
         </div>
 
         <?php if ($records === []): ?>
             <p class="empty-state">Nenhum registro cadastrado até o momento.</p>
         <?php elseif ($section === 'pessoas'): ?>
             <div class="registry-list people-list">
-                <div class="registry-header" aria-hidden="true"><span>Nome</span><span>CPF</span><span>Ações</span></div>
+                <div class="registry-header" aria-hidden="true"><span>Nome</span><span>Ações</span></div>
                 <?php foreach ($records as $record): ?>
                     <article class="registry-item">
                         <div><small>Nome</small><strong><?= e($record['nome']) ?></strong></div>
-                        <div><small>CPF</small><span><?= e($formatCpf((string) $record['cpf'])) ?></span></div>
                         <div class="registry-actions">
-                            <a class="button small" href="<?= url('/comissao/pessoas/' . $record['id'] . '/editar') ?>">Editar</a>
+                            <button
+                                class="button small"
+                                type="button"
+                                data-dialog-open="commission-record-dialog"
+                                data-form-action="<?= e(url('/comissao/pessoas/' . $record['id'])) ?>"
+                                data-dialog-title="Editar pessoa"
+                                data-submit-label="Salvar alterações"
+                                data-record-nome="<?= e($record['nome']) ?>"
+                            >Editar</button>
                             <form method="post" action="<?= url('/comissao/pessoas/' . $record['id'] . '/excluir') ?>">
                                 <?= Csrf::field() ?>
                                 <button class="button small danger" data-confirm="Remover esta pessoa?">Excluir</button>
@@ -62,7 +98,26 @@ $situationLabels = ['aguardando' => 'Aguardando', 'iniciada' => 'Iniciada', 'fin
                         <div><small>Período</small><span><?= e(date_br($record['data_inicio'])) ?> a <?= e(date_br($record['data_fim'])) ?></span></div>
                         <div><small>Situação</small><span class="status-badge status-<?= e($record['situacao']) ?>"><?= e($situationLabels[$record['situacao']] ?? $record['situacao']) ?></span></div>
                         <div class="registry-actions">
-                            <a class="button small" href="<?= url('/comissao/comissoes/' . $record['id'] . '/editar') ?>">Editar</a>
+                            <?php if ($record['situacao'] === 'aguardando'): ?>
+                                <form method="post" action="<?= url('/comissao/comissoes/' . $record['id'] . '/iniciar') ?>">
+                                    <?= Csrf::field() ?>
+                                    <button class="button small primary">Iniciar</button>
+                                </form>
+                            <?php else: ?>
+                                <a class="button small primary" href="<?= url('/comissao/comissoes/' . $record['id'] . '/cargos') ?>"><?= e($record['situacao'] === 'finalizada' ? 'Ver cargos' : 'Abrir') ?></a>
+                            <?php endif; ?>
+                            <button
+                                class="button small"
+                                type="button"
+                                data-dialog-open="commission-record-dialog"
+                                data-form-action="<?= e(url('/comissao/comissoes/' . $record['id'])) ?>"
+                                data-dialog-title="Editar comissão"
+                                data-submit-label="Salvar alterações"
+                                data-record-nome="<?= e($record['nome']) ?>"
+                                data-record-data-inicio="<?= e($record['data_inicio']) ?>"
+                                data-record-data-fim="<?= e($record['data_fim']) ?>"
+                                data-record-situacao="<?= e($record['situacao']) ?>"
+                            >Editar</button>
                             <form method="post" action="<?= url('/comissao/comissoes/' . $record['id'] . '/excluir') ?>">
                                 <?= Csrf::field() ?>
                                 <button class="button small danger" data-confirm="Remover esta comissão?">Excluir</button>
@@ -79,7 +134,16 @@ $situationLabels = ['aguardando' => 'Aguardando', 'iniciada' => 'Iniciada', 'fin
                         <div><small>Cargo</small><strong><?= e($record['nome']) ?></strong></div>
                         <div><small>Status</small><span class="status-badge status-<?= e($record['status']) ?>"><?= e(ucfirst($record['status'])) ?></span></div>
                         <div class="registry-actions">
-                            <a class="button small" href="<?= url('/comissao/cargos/' . $record['id'] . '/editar') ?>">Editar</a>
+                            <button
+                                class="button small"
+                                type="button"
+                                data-dialog-open="commission-record-dialog"
+                                data-form-action="<?= e(url('/comissao/cargos/' . $record['id'])) ?>"
+                                data-dialog-title="Editar cargo"
+                                data-submit-label="Salvar alterações"
+                                data-record-nome="<?= e($record['nome']) ?>"
+                                data-record-status="<?= e($record['status']) ?>"
+                            >Editar</button>
                             <form method="post" action="<?= url('/comissao/cargos/' . $record['id'] . '/excluir') ?>">
                                 <?= Csrf::field() ?>
                                 <button class="button small danger" data-confirm="Remover este cargo?">Excluir</button>
@@ -90,67 +154,65 @@ $situationLabels = ['aguardando' => 'Aguardando', 'iniciada' => 'Iniciada', 'fin
             </div>
         <?php endif; ?>
     </section>
-
-    <aside class="panel no-margin registry-form-panel">
-        <h2><?= e($isEdit ? 'Editar cadastro' : 'Novo cadastro') ?></h2>
-        <?php if ($section === 'pessoas'): ?>
-            <form method="post" action="<?= $isEdit ? url('/comissao/pessoas/' . $editing['id']) : url('/comissao/pessoas') ?>" class="form">
-                <?= Csrf::field() ?>
-                <label>Nome
-                    <input name="nome" maxlength="160" required autocomplete="name" value="<?= e($editing['nome'] ?? '') ?>">
-                </label>
-                <label>CPF
-                    <input name="cpf" maxlength="14" inputmode="numeric" autocomplete="off" data-cpf-mask required placeholder="000.000.000-00" value="<?= e(isset($editing['cpf']) ? $formatCpf((string) $editing['cpf']) : '') ?>">
-                </label>
-                <div class="form-actions">
-                    <button class="button primary"><?= e($isEdit ? 'Salvar alterações' : 'Cadastrar pessoa') ?></button>
-                    <?php if ($isEdit): ?><a class="button" href="<?= url('/comissao/pessoas') ?>">Cancelar</a><?php endif; ?>
-                </div>
-            </form>
-        <?php elseif ($section === 'comissoes'): ?>
-            <form method="post" action="<?= $isEdit ? url('/comissao/comissoes/' . $editing['id']) : url('/comissao/comissoes') ?>" class="form">
-                <?= Csrf::field() ?>
-                <label>Nome da comissão
-                    <input name="nome" maxlength="160" required placeholder="Ex: Nomeações 2027" value="<?= e($editing['nome'] ?? '') ?>">
-                </label>
-                <div class="form-grid two">
-                    <label>Data de início
-                        <input type="date" name="data_inicio" required value="<?= e($editing['data_inicio'] ?? '') ?>">
-                    </label>
-                    <label>Data de fim
-                        <input type="date" name="data_fim" required value="<?= e($editing['data_fim'] ?? '') ?>">
-                    </label>
-                </div>
-                <label>Situação
-                    <select name="situacao" required>
-                        <?php foreach ($situationLabels as $value => $label): ?>
-                            <option value="<?= e($value) ?>" <?= ($editing['situacao'] ?? 'aguardando') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <div class="form-actions">
-                    <button class="button primary"><?= e($isEdit ? 'Salvar alterações' : 'Cadastrar comissão') ?></button>
-                    <?php if ($isEdit): ?><a class="button" href="<?= url('/comissao/comissoes') ?>">Cancelar</a><?php endif; ?>
-                </div>
-            </form>
-        <?php else: ?>
-            <form method="post" action="<?= $isEdit ? url('/comissao/cargos/' . $editing['id']) : url('/comissao/cargos') ?>" class="form">
-                <?= Csrf::field() ?>
-                <label>Nome do cargo
-                    <input name="nome" maxlength="180" required placeholder="Ex: Diretor de Comunicação" value="<?= e($editing['nome'] ?? '') ?>">
-                </label>
-                <label>Status
-                    <select name="status" required>
-                        <option value="ativo" <?= ($editing['status'] ?? 'ativo') === 'ativo' ? 'selected' : '' ?>>Ativo</option>
-                        <option value="inativo" <?= ($editing['status'] ?? 'ativo') === 'inativo' ? 'selected' : '' ?>>Inativo</option>
-                    </select>
-                </label>
-                <p class="form-help">A lista inicial segue os cargos sugeridos no Manual da Igreja. Novos cargos podem ser incluídos normalmente.</p>
-                <div class="form-actions">
-                    <button class="button primary"><?= e($isEdit ? 'Salvar alterações' : 'Cadastrar cargo') ?></button>
-                    <?php if ($isEdit): ?><a class="button" href="<?= url('/comissao/cargos') ?>">Cancelar</a><?php endif; ?>
-                </div>
-            </form>
-        <?php endif; ?>
-    </aside>
 </div>
+
+<dialog
+    id="commission-record-dialog"
+    class="planning-dialog small-dialog registry-dialog"
+    data-app-dialog
+    data-record-dialog
+    data-auto-open="<?= $isEdit ? 'true' : 'false' ?>"
+    aria-labelledby="commission-record-dialog-title"
+>
+    <header class="planning-dialog-header">
+        <div>
+            <span class="eyebrow">Comissão de nomeações</span>
+            <h2 id="commission-record-dialog-title" data-record-dialog-title><?= e($isEdit ? 'Editar ' . $sectionConfig['singular'] : $sectionConfig['new_label']) ?></h2>
+        </div>
+        <button class="dialog-close" type="button" data-dialog-close aria-label="Fechar">&times;</button>
+    </header>
+    <form method="post" action="<?= e($formAction) ?>" class="form planning-editor" data-record-form>
+        <?= Csrf::field() ?>
+
+        <?php if ($section === 'pessoas'): ?>
+            <label>Nome
+                <input name="nome" maxlength="160" required autocomplete="name" autofocus value="<?= e($editing['nome'] ?? '') ?>">
+            </label>
+        <?php elseif ($section === 'comissoes'): ?>
+            <label>Nome da comissão
+                <input name="nome" maxlength="160" required autofocus placeholder="Ex: Nomeações 2027" value="<?= e($editing['nome'] ?? '') ?>">
+            </label>
+            <div class="form-grid two">
+                <label>Data de início
+                    <input type="date" name="data_inicio" required value="<?= e($editing['data_inicio'] ?? '') ?>">
+                </label>
+                <label>Data de fim
+                    <input type="date" name="data_fim" required value="<?= e($editing['data_fim'] ?? '') ?>">
+                </label>
+            </div>
+            <label>Situação
+                <select name="situacao" required>
+                    <?php foreach ($situationLabels as $value => $label): ?>
+                        <option value="<?= e($value) ?>" <?= ($editing['situacao'] ?? 'aguardando') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        <?php else: ?>
+            <label>Nome do cargo
+                <input name="nome" maxlength="180" required autofocus placeholder="Ex: Diretor de Comunicação" value="<?= e($editing['nome'] ?? '') ?>">
+            </label>
+            <label>Status
+                <select name="status" required>
+                    <option value="ativo" <?= ($editing['status'] ?? 'ativo') === 'ativo' ? 'selected' : '' ?>>Ativo</option>
+                    <option value="inativo" <?= ($editing['status'] ?? 'ativo') === 'inativo' ? 'selected' : '' ?>>Inativo</option>
+                </select>
+            </label>
+            <p class="form-help">A lista inicial segue os cargos sugeridos no Manual da Igreja. Novos cargos podem ser incluídos normalmente.</p>
+        <?php endif; ?>
+
+        <div class="form-actions">
+            <button class="button" type="button" data-dialog-close>Cancelar</button>
+            <button class="button primary" data-record-submit><?= e($isEdit ? 'Salvar alterações' : 'Salvar') ?></button>
+        </div>
+    </form>
+</dialog>
