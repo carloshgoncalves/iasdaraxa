@@ -3,6 +3,14 @@
 declare(strict_types=1);
 
 return [
+    'production_database' => [
+        'host' => 'ip-do-banco-producao',
+        'port' => 3306,
+        'name' => 'nome_do_banco',
+        'user' => 'usuario_do_banco',
+        'password' => 'senha_do_banco',
+        'charset' => 'utf8mb4',
+    ],
     'ftp' => [
         'host' => 'ftp.seudominio.com.br',
         'port' => 21,
@@ -15,7 +23,7 @@ return [
         '.git',
         '.github',
         '.gitignore',
-        'migrador/config.php',
+        'migrador',
         'env.php',
         'storage/backups',
         'storage/cache/*',

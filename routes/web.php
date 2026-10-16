@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use IasdCentral\Core\Config;
 use IasdCentral\Http\Web\AgendaController;
 use IasdCentral\Http\Web\AuthController;
+use IasdCentral\Http\Web\ComissaoController;
 use IasdCentral\Http\Web\DashboardController;
-use IasdCentral\Http\Web\MigratorController;
 use IasdCentral\Http\Web\ObrasController;
 use IasdCentral\Http\Web\PublicController;
 use IasdCentral\Http\Web\SettingsController;
@@ -23,8 +24,11 @@ $router->post('/configuracoes/clientes/{id}', [SettingsController::class, 'updat
 $router->post('/configuracoes/fornecedores', [SettingsController::class, 'storeSupplier']);
 $router->post('/configuracoes/fornecedores/{id}', [SettingsController::class, 'updateSupplier']);
 $router->post('/configuracoes/sinapi/verificar', [SettingsController::class, 'checkSinapi']);
-$router->get('/migrador', [MigratorController::class, 'index']);
-$router->post('/migrador/atualizar-ftp', [MigratorController::class, 'updateFtp']);
+
+$migratorRoutes = APP_BASE_PATH . '/migrador/routes.php';
+if (Config::get('app_env', 'production') === 'development' && is_file($migratorRoutes)) {
+    require $migratorRoutes;
+}
 
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->get('/obras', [ObrasController::class, 'index']);
@@ -57,3 +61,19 @@ $router->post('/agenda/atividades', [AgendaController::class, 'storeActivity']);
 $router->get('/agenda/{id}/edit', [AgendaController::class, 'edit']);
 $router->post('/agenda/{id}', [AgendaController::class, 'update']);
 $router->post('/agenda/{id}/delete', [AgendaController::class, 'destroy']);
+$router->get('/comissao', [ComissaoController::class, 'index']);
+$router->get('/comissao/pessoas', [ComissaoController::class, 'people']);
+$router->post('/comissao/pessoas', [ComissaoController::class, 'storePerson']);
+$router->get('/comissao/pessoas/{id}/editar', [ComissaoController::class, 'editPerson']);
+$router->post('/comissao/pessoas/{id}', [ComissaoController::class, 'updatePerson']);
+$router->post('/comissao/pessoas/{id}/excluir', [ComissaoController::class, 'destroyPerson']);
+$router->get('/comissao/comissoes', [ComissaoController::class, 'commissions']);
+$router->post('/comissao/comissoes', [ComissaoController::class, 'storeCommission']);
+$router->get('/comissao/comissoes/{id}/editar', [ComissaoController::class, 'editCommission']);
+$router->post('/comissao/comissoes/{id}', [ComissaoController::class, 'updateCommission']);
+$router->post('/comissao/comissoes/{id}/excluir', [ComissaoController::class, 'destroyCommission']);
+$router->get('/comissao/cargos', [ComissaoController::class, 'offices']);
+$router->post('/comissao/cargos', [ComissaoController::class, 'storeOffice']);
+$router->get('/comissao/cargos/{id}/editar', [ComissaoController::class, 'editOffice']);
+$router->post('/comissao/cargos/{id}', [ComissaoController::class, 'updateOffice']);
+$router->post('/comissao/cargos/{id}/excluir', [ComissaoController::class, 'destroyOffice']);

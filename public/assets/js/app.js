@@ -556,36 +556,15 @@ document.querySelector('[data-theme-selector]')?.addEventListener('change', (eve
     document.body.classList.add(`theme-${event.target.value}`);
 });
 
-const migratorButton = document.getElementById('updateFtp');
-const migratorOutput = document.getElementById('migratorOutput');
-const migratorCsrf = document.getElementById('migratorCsrf');
+document.querySelectorAll('[data-cpf-mask]').forEach((input) => {
+    const format = () => {
+        const digits = input.value.replace(/\D/g, '').slice(0, 11);
+        input.value = digits
+            .replace(/^(\d{3})(\d)/, '$1.$2')
+            .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+            .replace(/\.(\d{3})(\d)/, '.$1-$2');
+    };
 
-if (migratorButton && migratorOutput && migratorCsrf) {
-    migratorButton.addEventListener('click', async () => {
-        migratorButton.disabled = true;
-        migratorOutput.textContent = 'Iniciando atualizacao FTP...\n';
-
-        const data = new FormData();
-        data.append('_csrf', migratorCsrf.value);
-
-        try {
-            const response = await fetch(migratorButton.dataset.endpoint, { method: 'POST', body: data });
-            if (!response.body) {
-                throw new Error('O servidor nao disponibilizou o fluxo de resposta.');
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                migratorOutput.textContent += decoder.decode(value, { stream: true });
-                migratorOutput.scrollTop = migratorOutput.scrollHeight;
-            }
-        } catch (error) {
-            migratorOutput.textContent += `\n[ERROR] ${error.message}`;
-        } finally {
-            migratorButton.disabled = false;
-        }
-    });
-}
+    input.addEventListener('input', format);
+    format();
+});

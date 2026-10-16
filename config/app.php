@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'app_name' => 'IASD Central',
+    'app_env' => 'production',
     'app_url' => 'http://localhost/iasdaraxa',
     'asset_path' => '/assets',
     'app_debug' => false,

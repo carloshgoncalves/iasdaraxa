@@ -17,6 +17,10 @@ O projeto nasce compativel com o contrato `gm-menu/v1`.
 - `1030`: Escalas
 - `1040`: Tarefas
 - `1050`: Agenda geral
+- `1100`: Comissão de nomeações
+- `1110`: Comissões
+- `1120`: Pessoas
+- `1130`: Cargos
 
 Esses IDs devem permanecer estaveis porque `access_rules.menu_id` referencia `menus.id`.
 

@@ -1,0 +1,81 @@
+CREATE TABLE IF NOT EXISTS com_pessoas (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(160) NOT NULL,
+  cpf CHAR(11) NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_pessoas_cpf_unique (cpf),
+  KEY com_pessoas_nome_index (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_comissoes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(160) NOT NULL,
+  data_inicio DATE NOT NULL,
+  data_fim DATE NOT NULL,
+  situacao ENUM('aguardando','iniciada','finalizada') NOT NULL DEFAULT 'aguardando',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY com_comissoes_situacao_periodo_index (situacao, data_inicio, data_fim)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_cargos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(180) NOT NULL,
+  status ENUM('ativo','inativo') NOT NULL DEFAULT 'ativo',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_cargos_nome_unique (nome),
+  KEY com_cargos_status_nome_index (status, nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO com_cargos (nome, status, created_at, updated_at) VALUES
+('Ancião', 'ativo', NOW(), NOW()),
+('Diácono', 'ativo', NOW(), NOW()),
+('Diaconisa', 'ativo', NOW(), NOW()),
+('Secretário(a)', 'ativo', NOW(), NOW()),
+('Tesoureiro', 'ativo', NOW(), NOW()),
+('Tesoureiro associado', 'ativo', NOW(), NOW()),
+('Coordenador de interessados', 'ativo', NOW(), NOW()),
+('Membro da Comissão Diretiva da Igreja', 'ativo', NOW(), NOW()),
+('Membro da Comissão da Escola da Igreja', 'ativo', NOW(), NOW()),
+('Diretor da Ação Solidária Adventista', 'ativo', NOW(), NOW()),
+('Secretário-tesoureiro da Ação Solidária Adventista', 'ativo', NOW(), NOW()),
+('Diretor do Ministério Adventista das Possibilidades', 'ativo', NOW(), NOW()),
+('Diretor do Ministério Jovem Adventista', 'ativo', NOW(), NOW()),
+('Diretor de música do Ministério Jovem Adventista', 'ativo', NOW(), NOW()),
+('Pianista ou organista do Ministério Jovem Adventista', 'ativo', NOW(), NOW()),
+('Secretário-tesoureiro do Ministério Jovem Adventista', 'ativo', NOW(), NOW()),
+('Diretor do Clube de Aventureiros', 'ativo', NOW(), NOW()),
+('Diretor do Ministério dos Embaixadores', 'ativo', NOW(), NOW()),
+('Diretor do Clube de Desbravadores', 'ativo', NOW(), NOW()),
+('Diretor associado do Clube de Desbravadores', 'ativo', NOW(), NOW()),
+('Coordenador do Ministério de Universitários', 'ativo', NOW(), NOW()),
+('Líder de Jovens Adultos', 'ativo', NOW(), NOW()),
+('Coordenador da Escola Bíblica', 'ativo', NOW(), NOW()),
+('Diretor do Ministério da Criança', 'ativo', NOW(), NOW()),
+('Diretor do coral ou diretor de música', 'ativo', NOW(), NOW()),
+('Organista ou pianista da igreja', 'ativo', NOW(), NOW()),
+('Diretor de Comunicação', 'ativo', NOW(), NOW()),
+('Diretor de Educação', 'ativo', NOW(), NOW()),
+('Diretor do Ministério da Família', 'ativo', NOW(), NOW()),
+('Diretor do Ministério de Saúde', 'ativo', NOW(), NOW()),
+('Diretor do Ministério Pessoal', 'ativo', NOW(), NOW()),
+('Secretário do Ministério Pessoal', 'ativo', NOW(), NOW()),
+('Diretor do Ministério de Oração', 'ativo', NOW(), NOW()),
+('Diretor do Ministério de Publicações', 'ativo', NOW(), NOW()),
+('Diretor de Liberdade Religiosa', 'ativo', NOW(), NOW()),
+('Diretor da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Diretor associado da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Secretário da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Secretário associado da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Diretor de divisão da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Secretário do Fundo de Inversão da Escola Sabatina', 'ativo', NOW(), NOW()),
+('Diretor do Ministério de Mordomia Cristã', 'ativo', NOW(), NOW()),
+('Coordenador dos Escritos do Espírito de Profecia', 'ativo', NOW(), NOW()),
+('Diretor da Escola Cristã de Férias', 'ativo', NOW(), NOW()),
+('Diretora do Ministério da Mulher', 'ativo', NOW(), NOW())
+ON DUPLICATE KEY UPDATE nome = VALUES(nome);

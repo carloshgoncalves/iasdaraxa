@@ -540,3 +540,37 @@ CREATE TABLE IF NOT EXISTS obra_diarios (
   CONSTRAINT obra_diarios_obra_id_foreign FOREIGN KEY (obra_id) REFERENCES obras(id) ON DELETE CASCADE,
   CONSTRAINT obra_diarios_created_by_foreign FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_pessoas (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(160) NOT NULL,
+  cpf CHAR(11) NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_pessoas_cpf_unique (cpf),
+  KEY com_pessoas_nome_index (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_comissoes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(160) NOT NULL,
+  data_inicio DATE NOT NULL,
+  data_fim DATE NOT NULL,
+  situacao ENUM('aguardando','iniciada','finalizada') NOT NULL DEFAULT 'aguardando',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY com_comissoes_situacao_periodo_index (situacao, data_inicio, data_fim)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS com_cargos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(180) NOT NULL,
+  status ENUM('ativo','inativo') NOT NULL DEFAULT 'ativo',
+  created_at TIMESTAMP NULL DEFAULT NULL,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY com_cargos_nome_unique (nome),
+  KEY com_cargos_status_nome_index (status, nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

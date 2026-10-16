@@ -76,3 +76,14 @@ O migrador publica o projeto em duas raizes remotas fixas:
 Na hospedagem, `/iasdaraxa.com.br` e a pasta publica. O `public/index.php` localiza o
 `bootstrap.php` privado em `/appiasdaraxa`. As credenciais ficam apenas em
 `migrador/config.php`, que nao e versionado nem enviado ao FTP.
+
+O migrador e uma ferramenta exclusiva do ambiente local. Suas rotas somente sao
+registradas quando `app_env` e `development`, aceitam somente acessos originados da
+propria maquina (`127.0.0.1` ou `::1`) e nao exigem login. A pasta `migrador/`
+inteira e excluida da publicacao FTP. Em producao, mantenha `app_env` como
+`production` no `env.php` ou use o valor seguro padrao.
+
+A sincronizacao do banco local para producao exige a confirmacao textual
+`COPIAR PARA PRODUCAO`. Antes de alterar a producao, ela gera um backup completo em
+`storage/backups/`; em seguida recria a estrutura, importa os dados locais e compara
+as quantidades de registros. Se a importacao falhar, tenta restaurar o backup.

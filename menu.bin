@@ -4,9 +4,9 @@
         "slug": "iasdaraxa",
         "base_path": "/iasdaraxa"
     },
-    "version": 1,
-    "generated_at": "2026-07-29T00:00:00-03:00",
-    "checksum": "sha256:299548d69ec8abd10413dd3930d9a7f5ac41661b9422663954faf079ae629cbf",
+    "version": 2,
+    "generated_at": "2026-10-16T12:45:00-03:00",
+    "checksum": "sha256:0a22abaff8c0c54e3be1c7f660745c88f24a2994c1f0b750149f92fc1977e068",
     "items": [
         {
             "id": 1000,
@@ -85,6 +85,58 @@
             "tipo": "Tela",
             "nivel": "menu",
             "chave_permissao": "menu:1050"
+        },
+        {
+            "id": 1100,
+            "id_menu_pai": null,
+            "nome": "Comissão de nomeações",
+            "descricao": "Eleição e cargos da igreja",
+            "rota": "",
+            "icone": "users-round",
+            "ordem": 20,
+            "status": "Ativo",
+            "tipo": "Separador",
+            "nivel": "module",
+            "chave_permissao": "menu:1100"
+        },
+        {
+            "id": 1110,
+            "id_menu_pai": 1100,
+            "nome": "Comissões",
+            "descricao": "Períodos das comissões de nomeações",
+            "rota": "/comissao/comissoes",
+            "icone": "calendar-range",
+            "ordem": 10,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1110"
+        },
+        {
+            "id": 1120,
+            "id_menu_pai": 1100,
+            "nome": "Pessoas",
+            "descricao": "Pessoas disponíveis para a comissão",
+            "rota": "/comissao/pessoas",
+            "icone": "contact",
+            "ordem": 20,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1120"
+        },
+        {
+            "id": 1130,
+            "id_menu_pai": 1100,
+            "nome": "Cargos",
+            "descricao": "Cargos considerados pela comissão",
+            "rota": "/comissao/cargos",
+            "icone": "briefcase-business",
+            "ordem": 30,
+            "status": "Ativo",
+            "tipo": "Tela",
+            "nivel": "menu",
+            "chave_permissao": "menu:1130"
         }
     ]
 }

@@ -79,7 +79,6 @@ function shouldMigratorIgnorePath(string $relativePath, array $ignoredItems): bo
         return false;
     }
 
-    $firstPart = explode('/', $relativePath)[0];
     foreach ($ignoredItems as $ignoredItem) {
         $ignoredItem = str_replace('\\', '/', trim((string) $ignoredItem, '/'));
         if ($ignoredItem === '') {
@@ -90,7 +89,8 @@ function shouldMigratorIgnorePath(string $relativePath, array $ignoredItems): bo
             return true;
         }
 
-        if ($firstPart === $ignoredItem || migratorWildcardMatch($ignoredItem, $relativePath)) {
+        $hasWildcard = strpbrk($ignoredItem, '*?[') !== false;
+        if ($hasWildcard && migratorWildcardMatch($ignoredItem, $relativePath)) {
             return true;
         }
     }
@@ -264,7 +264,7 @@ try {
         $ignoredItems,
         [
             'public',
-            'migrador/config.php',
+            'migrador',
             'env.php',
             'storage/backups',
             'storage/cache/*',

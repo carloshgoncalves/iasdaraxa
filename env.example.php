@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'app_env' => 'development',
     'app_url' => 'http://localhost/iasdaraxa',
     'asset_path' => '/assets',
     'app_debug' => true,
